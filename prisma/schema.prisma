@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// Define the Channel table
+model Channel {
+  id        Int      @id @default(autoincrement())
+  name      String
+  programs  Program[]
+}
+
+// Define the Type table
+model Type {
+  id        Int      @id @default(autoincrement())
+  name      String
+  programs  Program[]
+}
+
+// Define the Category table
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  programs  Program[]
+}
+
+// Define the Program table
+model Program {
+  id          Int       @id @default(autoincrement())
+  title       String
+  duration    Int       // Duration in milliseconds
+  description String?
+  videoUrl    String?
+  channel     Channel?  @relation(fields: [channelId], references: [id])
+  channelId   Int?
+  type        Type?     @relation(fields: [typeId], references: [id])
+  typeId      Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+}
