@@ -1,70 +1,50 @@
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
+const http = require('http');
+const { Server } = require('socket.io');
+const dotenv = require("dotenv");
+
 const app = express();
-
 const port = 5000;
-
 const prisma = new PrismaClient();
+
+const channelRoutes = require('./routes/channels');
+const programRoutes = require('./routes/programs');
 
 app.use(cors());
 app.use(express.json());
+dotenv.config();
 
-// CRUD Operations for Channels
-app.get('/api/channels', async (req, res) => {
-  const channels = await prisma.channel.findMany();
-  res.json(channels);
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
 });
 
-app.post('/api/channels', async (req, res) => {
-  const { name } = req.body;
-  const channel = await prisma.channel.create({ data: { name } });
-  res.json(channel);
-});
+app.set('io', io);
 
-app.put('/api/channels/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name } = req.body;
-  const channel = await prisma.channel.update({ where: { id: parseInt(id) }, data: { name } });
-  res.json(channel);
-});
+io.on('connection', (socket) => {
+  console.log('A user connected');
 
-app.delete('/api/channels/:id', async (req, res) => {
-  const { id } = req.params;
-  await prisma.channel.delete({ where: { id: parseInt(id) } });
-  res.json({ message: 'Channel deleted' });
-});
-
-// CRUD Operations for programs
-app.get('/api/programs', async (req, res) => {
-  const programs = await prisma.program.findMany();
-  res.json(programs);
-});
-
-app.post('/api/programs', async (req, res) => {
-  const { title, duration, description, channelId, typeId, categoryId, videoUrl } = req.body;
-  const program = await prisma.program.create({
-    data: { title, duration, description, channelId, typeId, categoryId, videoUrl },
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
   });
-  res.json(program);
-});
 
-app.put('/api/programs/:id', async (req, res) => {
-  const { id } = req.params;
-  const { title, duration, description, channelId, typeId, categoryId, videoUrl } = req.body;
-  const program = await prisma.program.update({
-    where: { id: parseInt(id) },
-    data: { title, duration, description, channelId, typeId, categoryId, videoUrl },
+  socket.on('updatePrograms', () => {
+    io.emit('programsUpdated');
   });
-  res.json(program);
+
+  socket.on('updateChannels', () => {
+    io.emit('channelsUpdated');
+  });
 });
 
-app.delete('/api/programs/:id', async (req, res) => {
-  const { id } = req.params;
-  await prisma.program.delete({ where: { id: parseInt(id) } });
-  res.json({ message: 'programs deleted' });
-});
+app.use('/api/channels', channelRoutes);
+app.use('/api/programs', programRoutes);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
