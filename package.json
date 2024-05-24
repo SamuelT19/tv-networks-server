@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node prisma/seed.js",
-    "build": "npx prisma generate && bun build"
+    "build": "prisma generate && npm install"
   },
   "keywords": [],
   "author": "",
