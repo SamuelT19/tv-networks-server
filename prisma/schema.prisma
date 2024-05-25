@@ -39,13 +39,24 @@ model Category {
 model Program {
   id          Int       @id @default(autoincrement())
   title       String
-  duration    Int       // Duration in milliseconds
+  duration    Int     
   description String?
   videoUrl    String?
+  airDate     DateTime?
   channel     Channel?  @relation(fields: [channelId], references: [id])
   channelId   Int?
   type        Type?     @relation(fields: [typeId], references: [id])
   typeId      Int?
   category    Category? @relation(fields: [categoryId], references: [id])
   categoryId  Int?
+}
+
+
+// Define the User table
+model User {
+  id        Int     @id @default(autoincrement())
+  username  String  @unique
+  email     String  @unique
+  password  String
+  isAdmin   Boolean @default(false)
 }
