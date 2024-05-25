@@ -1,12 +1,10 @@
-
-
-
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.getAllChannels = async (req, res) => {
   try {
     const channels = await prisma.channel.findMany();
+    req.io.emit('channelsUpdated'); 
     res.json(channels);
   } catch (error) {
     res.status(500).json({ error: error.message });
