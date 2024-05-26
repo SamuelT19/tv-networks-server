@@ -43,7 +43,7 @@ model Program {
   description String?
   videoUrl    String?
   airDate     DateTime?
-  channel     Channel?  @relation(fields: [channelId], references: [id])
+  channel     Channel?  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   channelId   Int?
   type        Type?     @relation(fields: [typeId], references: [id])
   typeId      Int?
