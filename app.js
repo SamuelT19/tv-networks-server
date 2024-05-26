@@ -42,6 +42,9 @@ io.on('connection', (socket) => {
   socket.on('updateChannels', () => {
     io.emit('channelsUpdated');
   });
+  socket.on('updateUsers', () => {
+    io.emit('usersUpdated');
+  });
 });
 
 app.use('/api/channels', channelRoutes);
