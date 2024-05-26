@@ -44,7 +44,7 @@ exports.getAllPrograms = async (req, res) => {
     const transformedPrograms = programs.map(program => ({
       id: program.id,
       title: program.title,
-      duration: String(program.duration),
+      duration: program.duration,
       description: program.description,
       videoUrl: program.videoUrl,
       channelId: program.channelId,
