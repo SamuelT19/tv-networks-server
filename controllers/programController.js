@@ -1,9 +1,17 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
 exports.createProgram = async (req, res) => {
-  const { title, duration, description, channelId, typeId, categoryId, videoUrl } = req.body;
+  const {
+    title,
+    duration,
+    description,
+    channelId,
+    typeId,
+    categoryId,
+    videoUrl,
+  } = req.body;
 
   const endDate = new Date();
   const randomDays = Math.floor(Math.random() * 30) + 1;
@@ -23,10 +31,10 @@ exports.createProgram = async (req, res) => {
         airDate,
       },
     });
-    req.io.emit('programsUpdated');
+    req.io.emit("programsUpdated");
     res.json(program);
   } catch (error) {
-    console.error('Error creating program:', error);
+    console.error("Error creating program:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -41,7 +49,7 @@ exports.getAllPrograms = async (req, res) => {
       },
     });
 
-    const transformedPrograms = programs.map(program => ({
+    const transformedPrograms = programs.map((program) => ({
       id: program.id,
       title: program.title,
       duration: program.duration,
@@ -58,7 +66,7 @@ exports.getAllPrograms = async (req, res) => {
 
     res.json(transformedPrograms);
   } catch (error) {
-    console.error('Error fetching programs:', error);
+    console.error("Error fetching programs:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -66,17 +74,24 @@ exports.getAllPrograms = async (req, res) => {
 exports.getProgramCount = async (req, res) => {
   try {
     const count = await prisma.program.count();
-    req.io.emit('programsUpdated');
     res.json({ count });
   } catch (error) {
-    console.error('Error fetching program count:', error);
+    console.error("Error fetching program count:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.updateProgram = async (req, res) => {
   const { id } = req.params;
-  const { title, duration, description, channelId, typeId, categoryId, videoUrl } = req.body;
+  const {
+    title,
+    duration,
+    description,
+    channelId,
+    typeId,
+    categoryId,
+    videoUrl,
+  } = req.body;
 
   try {
     const program = await prisma.program.update({
@@ -91,10 +106,10 @@ exports.updateProgram = async (req, res) => {
         videoUrl,
       },
     });
-    req.io.emit('programsUpdated');
+    req.io.emit("programsUpdated");
     res.json(program);
   } catch (error) {
-    console.error('Error updating program:', error);
+    console.error("Error updating program:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -104,10 +119,10 @@ exports.deleteProgram = async (req, res) => {
 
   try {
     await prisma.program.delete({ where: { id: parseInt(id) } });
-    req.io.emit('programsUpdated');
-    res.json({ message: 'Program deleted' });
+    req.io.emit("programsUpdated");
+    res.json({ message: "Program deleted" });
   } catch (error) {
-    console.error('Error deleting program:', error);
+    console.error("Error deleting program:", error);
     res.status(500).json({ error: error.message });
   }
 };
