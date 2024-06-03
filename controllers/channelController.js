@@ -1,14 +1,52 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+// exports.getAllChannels = async (req, res) => {
+//   try {
+//     const channels = await prisma.channel.findMany();
+//     res.json(channels);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.getAllChannels = async (req, res) => {
+  const { page = 1, pageSize = 10, search = "", sort = "id", order = "asc" } = req.query;
+
+  const skip = (page - 1) * pageSize;
+  const take = parseInt(pageSize);
+
+  const orderBy = {};
+  orderBy[sort] = order;
+
   try {
-    const channels = await prisma.channel.findMany();
-    res.json(channels);
+    const channels = await prisma.channel.findMany({
+      skip,
+      take,
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+      orderBy,
+    });
+
+    const total = await prisma.channel.count({
+      where: {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    res.json({ channels, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.createChannel = async (req, res) => {
   const { name } = req.body;
