@@ -1,7 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-
 exports.getAllChannels = async (req, res) => {
   const { start, size, filters, globalFilter, sorting } = req.query;
 
@@ -13,12 +12,6 @@ exports.getAllChannels = async (req, res) => {
   if (globalFilter) {
     where.OR = [{ name: { contains: globalFilter, mode: "insensitive" } }];
   }
-
-  // Helper function to check if a value is valid for numeric IDs
-  const isValidNumericValue = (value) => value !== undefined && value !== null && value !== '' && !isNaN(value);
-
-  // Helper function to check if a value is valid for non-numeric IDs
-  const isValidStringValue = (value) => value !== undefined && value !== null && value !== '';
 
   // Apply column filters
   if (filters) {
@@ -32,30 +25,37 @@ exports.getAllChannels = async (req, res) => {
         // If the ID is numeric, treat the value as a number
         const numericValue = parseFloat(value);
         switch (type) {
+          case "fuzzy":
+            where[id] = { contains: value, mode: "insensitive" };
+            break;
           case "equals":
-            if (isValidNumericValue(numericValue)) where[id] = { equals: numericValue };
+            where[id] = { equals: numericValue };
             break;
           case "notEquals":
-            if (isValidNumericValue(numericValue)) where[id] = { not: numericValue };
+            where[id] = { not: numericValue };
             break;
           case "between":
-          case "betweenInclusive":
             const [lower, upper] = value;
-            if (isValidNumericValue(lower) && isValidNumericValue(upper)) {
-              where[id] = { gte: parseFloat(lower), lte: parseFloat(upper) };
-            }
+            where[id] = { gte: parseFloat(lower), lte: parseFloat(upper) };
+            break;
+          case "betweenInclusive":
+            const [inclusiveLower, inclusiveUpper] = value;
+            where[id] = {
+              gte: parseFloat(inclusiveLower),
+              lte: parseFloat(inclusiveUpper),
+            };
             break;
           case "greaterThan":
-            if (isValidNumericValue(numericValue)) where[id] = { gt: numericValue };
+            where[id] = { gt: numericValue };
             break;
           case "greaterThanOrEqual":
-            if (isValidNumericValue(numericValue)) where[id] = { gte: numericValue };
+            where[id] = { gte: numericValue };
             break;
           case "lessThan":
-            if (isValidNumericValue(numericValue)) where[id] = { lt: numericValue };
+            where[id] = { lt: numericValue };
             break;
           case "lessThanOrEqual":
-            if (isValidNumericValue(numericValue)) where[id] = { lte: numericValue };
+            where[id] = { lte: numericValue };
             break;
           default:
             break;
@@ -64,20 +64,22 @@ exports.getAllChannels = async (req, res) => {
         // If the ID is not numeric, treat the value as a string
         switch (type) {
           case "fuzzy":
+            where[id] = { contains: value, mode: "insensitive" };
+            break;
           case "contains":
-            if (isValidStringValue(value)) where[id] = { contains: value, mode: "insensitive" };
+            where[id] = { contains: value, mode: "insensitive" };
             break;
           case "startsWith":
-            if (isValidStringValue(value)) where[id] = { startsWith: value, mode: "insensitive" };
+            where[id] = { startsWith: value, mode: "insensitive" };
             break;
           case "endsWith":
-            if (isValidStringValue(value)) where[id] = { endsWith: value, mode: "insensitive" };
+            where[id] = { endsWith: value, mode: "insensitive" };
             break;
           case "equals":
-            if (isValidStringValue(value)) where[id] = { equals: value, mode: "insensitive" };
+            where[id] = { equals: value, mode: "insensitive" };
             break;
           case "notEquals":
-            if (isValidStringValue(value)) where[id] = { not: value, mode: "insensitive" };
+            where[id] = { not: value, mode: "insensitive" };
             break;
           case "empty":
             where[id] = { equals: null };
@@ -120,7 +122,6 @@ exports.getAllChannels = async (req, res) => {
     res.status(500).json({ error: "An error occurred while fetching data." });
   }
 };
-
 
 exports.createChannel = async (req, res) => {
   const { name } = req.body;
