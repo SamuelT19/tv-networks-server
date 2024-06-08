@@ -1,5 +1,4 @@
 const { PrismaClient } = require("@prisma/client");
-
 const prisma = new PrismaClient();
 
 exports.createProgram = async (req, res) => {
@@ -39,9 +38,125 @@ exports.createProgram = async (req, res) => {
   }
 };
 
+
 exports.getAllPrograms = async (req, res) => {
+  const { start, size, filters, globalFilter, sorting } = req.query;
+
+  const pageIndex = parseInt(start, 10) || 0;
+  const pageSize = parseInt(size, 10) || 10;
+  let where = {};
+
+  // Apply global filter
+  if (globalFilter) {
+    where.OR = [
+      { title: { contains: globalFilter, mode: "insensitive" } },
+      { description: { contains: globalFilter, mode: "insensitive" } },
+      { videoUrl: { contains: globalFilter, mode: "insensitive" } },
+      { channel: { name: { contains: globalFilter, mode: "insensitive" } } },
+      { type: { name: { contains: globalFilter, mode: "insensitive" } } },
+      { category: { name: { contains: globalFilter, mode: "insensitive" } } },
+    ];
+  }
+
+  // Helper function to check if a value is valid for numeric IDs
+  const isValidNumericValue = (value) => value !== undefined && value !== null && value !== '' && !isNaN(value);
+
+  // Helper function to check if a value is valid for non-numeric IDs
+  const isValidStringValue = (value) => value !== undefined && value !== null && value !== '';
+
+  // Apply column filters
+  if (filters) {
+    const parsedFilters = JSON.parse(filters);
+    parsedFilters.forEach((filter) => {
+      const { id, value, type } = filter;
+
+      // Check the type of ID
+      const isIdNumeric =
+        id === "id" ||
+        id === "channelId" ||
+        id === "typeId" ||
+        id === "categoryId" ||
+        id === "duration";
+      if (isIdNumeric) {
+        // If the ID is numeric, treat the value as a number
+        const numericValue = parseFloat(value);
+        switch (type) {
+          case "equals":
+            if (isValidNumericValue(numericValue)) where[id] = { equals: numericValue };
+            break;
+          case "notEquals":
+            if (isValidNumericValue(numericValue)) where[id] = { not: numericValue };
+            break;
+          case "between":
+          case "betweenInclusive":
+            const [lower, upper] = value;
+            if (isValidNumericValue(lower) && isValidNumericValue(upper)) {
+              where[id] = { gte: parseFloat(lower), lte: parseFloat(upper) };
+            }
+            break;
+          case "greaterThan":
+            if (isValidNumericValue(numericValue)) where[id] = { gt: numericValue };
+            break;
+          case "greaterThanOrEqual":
+            if (isValidNumericValue(numericValue)) where[id] = { gte: numericValue };
+            break;
+          case "lessThan":
+            if (isValidNumericValue(numericValue)) where[id] = { lt: numericValue };
+            break;
+          case "lessThanOrEqual":
+            if (isValidNumericValue(numericValue)) where[id] = { lte: numericValue };
+            break;
+          default:
+            break;
+        }
+      } else {
+        // If the ID is not numeric, treat the value as a string
+        switch (type) {
+          case "fuzzy":
+          case "contains":
+            if (isValidStringValue(value)) where[id] = { contains: value, mode: "insensitive" };
+            break;
+          case "startsWith":
+            if (isValidStringValue(value)) where[id] = { startsWith: value, mode: "insensitive" };
+            break;
+          case "endsWith":
+            if (isValidStringValue(value)) where[id] = { endsWith: value, mode: "insensitive" };
+            break;
+          case "equals":
+            if (isValidStringValue(value)) where[id] = { equals: value, mode: "insensitive" };
+            break;
+          case "notEquals":
+            if (isValidStringValue(value)) where[id] = { not: value, mode: "insensitive" };
+            break;
+          case "empty":
+            where[id] = { equals: null };
+            break;
+          case "notEmpty":
+            where[id] = { not: null };
+            break;
+          default:
+            break;
+        }
+      }
+    });
+  }
+
+  // Apply sorting
+  let orderBy = [];
+  if (sorting) {
+    const parsedSorting = JSON.parse(sorting);
+    orderBy = parsedSorting.map((sort) => ({
+      [sort.id]: sort.desc ? "desc" : "asc",
+    }));
+  }
+
   try {
+    const totalRowCount = await prisma.program.count({ where });
     const programs = await prisma.program.findMany({
+      where,
+      orderBy,
+      skip: pageIndex * pageSize,
+      take: pageSize,
       include: {
         channel: true,
         type: true,
@@ -49,25 +164,15 @@ exports.getAllPrograms = async (req, res) => {
       },
     });
 
-    const transformedPrograms = programs.map((program) => ({
-      id: program.id,
-      title: program.title,
-      duration: program.duration,
-      description: program.description,
-      videoUrl: program.videoUrl,
-      channelId: program.channelId,
-      typeId: program.typeId,
-      categoryId: program.categoryId,
-      typeName: program.type.name,
-      categoryName: program.category.name,
-      channelName: program.channel.name,
-      airDate: program.airDate,
-    }));
-
-    res.json(transformedPrograms);
+    res.json({
+      data: { programs: programs },
+      meta: {
+        totalRowCount,
+      },
+    });
   } catch (error) {
     console.error("Error fetching programs:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "An error occurred while fetching data." });
   }
 };
 
