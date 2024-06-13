@@ -18,6 +18,7 @@ datasource db {
 model Channel {
   id        Int      @id @default(autoincrement())
   name      String
+  isActive  Boolean?
   programs  Program[]
 }
 
@@ -43,6 +44,7 @@ model Program {
   description String?
   videoUrl    String?
   airDate     DateTime?
+  isActive    Boolean?
   channel     Channel?  @relation(fields: [channelId], references: [id], onDelete: Cascade)
   channelId   Int?
   type        Type?     @relation(fields: [typeId], references: [id])

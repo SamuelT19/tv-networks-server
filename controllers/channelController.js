@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const { applyFilter } = require("./filterHandler");
 
 exports.getAllChannels = async (req, res) => {
   const { start, size, filters, globalFilter, sorting } = req.query;
@@ -17,80 +18,7 @@ exports.getAllChannels = async (req, res) => {
   if (filters) {
     const parsedFilters = JSON.parse(filters);
     parsedFilters.forEach((filter) => {
-      const { id, value, type } = filter;
-
-      // Check the type of ID
-      const isIdNumeric = id === "id";
-      if (isIdNumeric) {
-        // If the ID is numeric, treat the value as a number
-        const numericValue = parseFloat(value);
-        switch (type) {
-          case "fuzzy":
-            where[id] = { contains: value, mode: "insensitive" };
-            break;
-          case "equals":
-            where[id] = { equals: numericValue };
-            break;
-          case "notEquals":
-            where[id] = { not: numericValue };
-            break;
-          case "between":
-            const [lower, upper] = value;
-            where[id] = { gte: parseFloat(lower), lte: parseFloat(upper) };
-            break;
-          case "betweenInclusive":
-            const [inclusiveLower, inclusiveUpper] = value;
-            where[id] = {
-              gte: parseFloat(inclusiveLower),
-              lte: parseFloat(inclusiveUpper),
-            };
-            break;
-          case "greaterThan":
-            where[id] = { gt: numericValue };
-            break;
-          case "greaterThanOrEqual":
-            where[id] = { gte: numericValue };
-            break;
-          case "lessThan":
-            where[id] = { lt: numericValue };
-            break;
-          case "lessThanOrEqual":
-            where[id] = { lte: numericValue };
-            break;
-          default:
-            break;
-        }
-      } else {
-        // If the ID is not numeric, treat the value as a string
-        switch (type) {
-          case "fuzzy":
-            where[id] = { contains: value, mode: "insensitive" };
-            break;
-          case "contains":
-            where[id] = { contains: value, mode: "insensitive" };
-            break;
-          case "startsWith":
-            where[id] = { startsWith: value, mode: "insensitive" };
-            break;
-          case "endsWith":
-            where[id] = { endsWith: value, mode: "insensitive" };
-            break;
-          case "equals":
-            where[id] = { equals: value, mode: "insensitive" };
-            break;
-          case "notEquals":
-            where[id] = { not: value, mode: "insensitive" };
-            break;
-          case "empty":
-            where[id] = { equals: null };
-            break;
-          case "notEmpty":
-            where[id] = { not: null };
-            break;
-          default:
-            break;
-        }
-      }
+      applyFilter(filter, where);
     });
   }
 
@@ -124,15 +52,21 @@ exports.getAllChannels = async (req, res) => {
 };
 
 exports.createChannel = async (req, res) => {
-  const { name } = req.body;
+  const { name, isActive } = req.body;
   try {
-    const channel = await prisma.channel.create({ data: { name } });
+    const channel = await prisma.channel.create({
+      data: {
+        name,
+        isActive 
+      }
+    });
     req.io.emit("channelsUpdated");
     res.json(channel);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.getChannelCount = async (req, res) => {
   try {
@@ -143,13 +77,17 @@ exports.getChannelCount = async (req, res) => {
   }
 };
 
+
 exports.updateChannel = async (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
+  const { name, isActive } = req.body; 
   try {
     const channel = await prisma.channel.update({
       where: { id: parseInt(id) },
-      data: { name },
+      data: {
+        name,
+        isActive 
+      }
     });
     req.io.emit("channelsUpdated");
     res.json(channel);
